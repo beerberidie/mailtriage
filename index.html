@@ -519,7 +519,7 @@ const GmailClient = {
     for (let i = 0; i < data.messages.length; i += 5) {
       const batch = data.messages.slice(i, i + 5);
       const results = await Promise.all(
-        batch.map(msg => this.apiFetch(`https://mail.google.com/mail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`).catch(() => null))
+        batch.map(msg => this.apiFetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`).catch(() => null))
       );
       // Fallback: try the standard endpoint if metadata-only fails
       for (let j = 0; j < batch.length; j++) {
