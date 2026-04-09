@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0D0F14">
+<title>MailTriage</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTWFpbFRyaWFnZSIsInNob3J0X25hbWUiOiJNYWlsVHJpYWdlIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwRDBGMTE0IiwidGhlbWVfY29sb3IiOiIjMEQwRjExNCJ9">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#0D0F14;--bg2:#111318;--card:#161921;--card-h:#1C1F2A;--bdr:#252830;
+  --fg:#E8E9ED;--fgd:#9CA3AF;--mt:#6B7280;
+  --ac:#E8A838;--acd:rgba(232,168,56,.12);--acg:rgba(232,168,56,.25);
+  --dn:#F87171;--dnd:rgba(248,113,113,.12);
+  --ok:#34D399;--okd:rgba(52,211,153,.12);
+  --inf:#60A5FA;--infd:rgba(96,165,250,.12);
+  --pr:#A78BFA;--prd:rgba(167,139,250,.12);
+  --pk:#F472B6;--pkd:rgba(244,114,182,.12);
+  --navh:72px;--hdrh:56px;
+  --sbt:env(safe-area-inset-bottom,0px);--stp:env(safe-area-inset-top,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--fg);height:100%;overflow:hidden;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
+#app{position:relative;width:100%;height:100%;max-width:480px;margin:0 auto;overflow:hidden}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;transform:translateY(8px);z-index:1}
+.screen.active{opacity:1;pointer-events:auto;transform:translateY(0);z-index:10}
+#splash{z-index:100;background:var(--bg);justify-content:center;align-items:center;flex-direction:column;gap:24px}
+#splash.active{opacity:1;transform:translateY(0)}
+.sp-logo{width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,var(--ac),#D4922A);display:flex;align-items:center;justify-content:center;font-size:36px;color:#0D0F14;animation:spP 1.5s ease-in-out infinite;box-shadow:0 0 40px var(--acg)}
+@keyframes spP{0%,100%{transform:scale(1);box-shadow:0 0 40px var(--acg)}50%{transform:scale(1.05);box-shadow:0 0 60px var(--acg)}}
+.sp-txt{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.sp-sub{color:var(--mt);font-size:14px;margin-top:-12px}
+.sp-bar{width:120px;height:3px;background:var(--bdr);border-radius:3px;overflow:hidden;margin-top:16px}
+.sp-fill{height:100%;width:0;background:var(--ac);border-radius:3px;animation:spL 2s ease forwards}
+@keyframes spL{to{width:100%}}
+
+/* Setup / Welcome */
+#setup{z-index:90;background:var(--bg);padding:32px 24px;justify-content:center;overflow-y:auto}
+.setup-hero{text-align:center;margin-bottom:36px}
+.setup-hero .sp-logo{margin:0 auto 20px;width:72px;height:72px;font-size:30px;border-radius:18px;animation:none;box-shadow:0 0 30px var(--acg)}
+.setup-title{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.setup-desc{color:var(--mt);font-size:13px;line-height:1.7;margin-top:10px;max-width:320px;margin-left:auto;margin-right:auto}
+.setup-divider{display:flex;align-items:center;gap:12px;margin:28px 0 20px;color:var(--mt);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.setup-divider::before,.setup-divider::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.input-group{margin-bottom:16px}
+.input-label{font-size:11px;font-weight:700;color:var(--fgd);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.input-label a{color:var(--ac);text-transform:none;letter-spacing:0;font-weight:600;text-decoration:none;font-size:11px}
+.input-field{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid var(--bdr);background:var(--card);color:var(--fg);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s}
+.input-field:focus{border-color:var(--ac)}
+.input-field::placeholder{color:var(--mt)}
+.btn-primary{width:100%;padding:15px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--ac),#D4922A);color:#0D0F14;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s,box-shadow .15s;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-primary:active{transform:scale(.97)}.btn-primary:hover{box-shadow:0 4px 24px var(--acg)}
+.btn-primary:disabled{opacity:.5;pointer-events:none}
+.btn-secondary{width:100%;padding:15px;border-radius:12px;border:1.5px solid var(--bdr);background:var(--card);color:var(--fg);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:transform .15s,background .15s;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-secondary:active{transform:scale(.97);background:var(--card-h)}
+.providers{display:flex;gap:10px;margin-top:8px}
+.provider-btn{flex:1;padding:13px 8px;border-radius:12px;border:1.5px solid var(--bdr);background:var(--card);color:var(--fg);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:border-color .2s,background .2s}
+.provider-btn:active{background:var(--card-h)}
+.provider-btn span{font-size:12px;font-weight:600}
+.provider-btn.google span{color:#EA4335}.provider-btn.outlook span{color:#0078D4}
+.setup-note{font-size:11px;color:var(--mt);text-align:center;margin-top:16px;line-height:1.5}
+.setup-note i{color:var(--ok);margin-right:4px}
+
+/* Loading overlay */
+.loading-overlay{position:absolute;inset:0;background:rgba(13,15,20,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:20;opacity:0;pointer-events:none;transition:opacity .3s}
+.loading-overlay.show{opacity:1;pointer-events:auto}
+.loader{width:40px;height:40px;border:3px solid var(--bdr);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{font-size:13px;color:var(--fgd)}
+
+/* Header */
+.app-header{height:var(--hdrh);padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding-top:var(--stp);background:var(--bg);border-bottom:1px solid var(--bdr)}
+.header-title{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.header-actions{display:flex;gap:8px}
+.header-btn{width:36px;height:36px;border-radius:10px;border:1px solid var(--bdr);background:var(--card);color:var(--fgd);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;transition:background .15s}
+.header-btn:active{background:var(--card-h)}
+.badge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:var(--dn);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg)}
+.conn-bar{padding:6px 20px;font-size:10px;font-weight:600;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--bdr)}
+.conn-bar.ok{color:var(--ok);background:var(--okd)}.conn-bar.off{color:var(--dn);background:var(--dnd)}.conn-bar.demo{color:var(--ac);background:var(--acd)}
+.conn-dot{width:5px;height:5px;border-radius:50%;animation:cp 2s ease infinite}
+.conn-bar.ok .conn-dot{background:var(--ok)}.conn-bar.off .conn-dot{background:var(--dn)}.conn-bar.demo .conn-dot{background:var(--ac)}
+@keyframes cp{0%,100%{opacity:1}50%{opacity:.4}}
+
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--navh) + var(--sbt) + 12px)}
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:calc(var(--navh) + var(--sbt));padding-bottom:var(--sbt);background:rgba(13,15,20,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-around;z-index:50}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 14px;border-radius:12px;cursor:pointer;color:var(--mt);transition:color .2s;position:relative}
+.nav-item.active{color:var(--ac)}
+.nav-item i{font-size:19px;transition:transform .2s}.nav-item.active i{transform:scale(1.1)}
+.nav-item span{font-size:9px;font-weight:600;letter-spacing:.3px}
+.nav-badge{position:absolute;top:2px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--dn);border:2px solid var(--bg)}
+
+/* Dashboard */
+.dash-greet{padding:16px 20px 0}
+.dash-hello{font-size:13px;color:var(--mt)}
+.dash-name{font-size:24px;font-weight:700;letter-spacing:-.5px;margin-top:2px}
+.dash-summary{margin:16px 20px;padding:16px;border-radius:14px;background:linear-gradient(135deg,rgba(232,168,56,.07),rgba(232,168,56,.02));border:1px solid rgba(232,168,56,.13);display:flex;align-items:center;gap:14px}
+.sum-icon{width:44px;height:44px;border-radius:12px;background:var(--acd);color:var(--ac);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.sum-text h3{font-size:14px;font-weight:600}.sum-text p{font-size:11px;color:var(--mt);margin-top:2px}
+.sec-title{padding:0 20px;font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px}
+.quick-stats{padding:0 20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat-box{padding:12px;border-radius:11px;background:var(--card);border:1px solid var(--bdr);text-align:center}
+.stat-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700}
+.stat-lbl{font-size:9px;color:var(--mt);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+.cat-cards{padding:0 20px;display:flex;flex-direction:column;gap:8px}
+.cat-card{display:flex;align-items:center;gap:12px;padding:14px;border-radius:13px;background:var(--card);border:1px solid var(--bdr);cursor:pointer;transition:background .15s,transform .15s}
+.cat-card:active{transform:scale(.98);background:var(--card-h)}
+.cat-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.cat-info{flex:1;min-width:0}
+.cat-name{font-size:14px;font-weight:600}
+.cat-desc{font-size:11px;color:var(--mt);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-count{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;padding:3px 9px;border-radius:7px;flex-shrink:0}
+.cat-chev{color:var(--mt);font-size:13px;flex-shrink:0}
+.ct .cat-icon{background:var(--dnd);color:var(--dn)}.ct .cat-count{background:var(--dnd);color:var(--dn)}
+.ci .cat-icon{background:var(--infd);color:var(--inf)}.ci .cat-count{background:var(--infd);color:var(--inf)}
+.cs .cat-icon{background:var(--prd);color:var(--pr)}.cs .cat-count{background:var(--prd);color:var(--pr)}
+.cd .cat-icon{background:var(--okd);color:var(--ok)}.cd .cat-count{background:var(--okd);color:var(--ok)}
+.co .cat-icon{background:var(--pkd);color:var(--pk)}.co .cat-count{background:var(--pkd);color:var(--pk)}
+
+/* Filter bar */
+.filter-bar{padding:10px 20px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.filter-bar::-webkit-scrollbar{display:none}
+.fchip{padding:7px 14px;border-radius:18px;white-space:nowrap;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--bdr);background:var(--card);color:var(--fgd);transition:all .15s;flex-shrink:0}
+.fchip.active{background:var(--acd);border-color:var(--ac);color:var(--ac)}
+.fchip:active{transform:scale(.95)}
+
+/* Email list */
+.elist{padding:0 10px;display:flex;flex-direction:column;gap:1px}
+.eitem{display:flex;align-items:flex-start;gap:11px;padding:13px 10px;border-radius:11px;cursor:pointer;transition:background .15s;position:relative}
+.eitem:active{background:var(--card-h)}
+.eitem.unread{background:rgba(232,168,56,.03)}
+.eitem.unread::before{content:'';position:absolute;left:3px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:var(--ac)}
+.eavatar{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;color:#fff}
+.ebody{flex:1;min-width:0}
+.efrom{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.esubj{font-size:12px;color:var(--fgd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.eprev{font-size:11px;color:var(--mt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.emeta{flex-shrink:0;text-align:right}
+.etime{font-size:10px;color:var(--mt);font-family:'JetBrains Mono',monospace}
+.etag{display:inline-block;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 5px;border-radius:4px;margin-top:3px}
+.tag-urgent{background:var(--dnd);color:var(--dn)}.tag-high{background:rgba(251,191,36,.12);color:#FBBF24}
+.tag-normal{background:var(--bdr);color:var(--fgd)}.tag-low{background:var(--okd);color:var(--ok)}
+.tag-deal{background:var(--okd);color:var(--ok)}.tag-saving{background:var(--acd);color:var(--ac)}
+.swipe-hint{text-align:center;font-size:10px;color:var(--mt);padding:8px 20px 2px}
+
+/* Deal cards */
+.deal-card{margin:0 12px 6px;padding:14px;border-radius:13px;background:var(--card);border:1px solid var(--bdr);display:flex;gap:12px;cursor:pointer;transition:background .15s}
+.deal-card:active{background:var(--card-h)}
+.deal-img{width:56px;height:56px;border-radius:9px;object-fit:cover;flex-shrink:0}
+.deal-info{flex:1;min-width:0}
+.deal-brand{font-size:10px;color:var(--mt);text-transform:uppercase;letter-spacing:.4px}
+.deal-title{font-size:13px;font-weight:600;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deal-save{font-size:11px;color:var(--ac);font-weight:700;margin-top:3px}
+.deal-chev{color:var(--mt);font-size:13px;align-self:center}
+
+/* Email detail */
+#emailDetail{z-index:80;background:var(--bg)}
+.det-back{display:flex;align-items:center;gap:6px;padding:10px 20px;color:var(--ac);font-size:13px;font-weight:600;cursor:pointer;border:none;background:none}
+.det-back:active{opacity:.7}
+.det-hdr{padding:0 20px 14px;border-bottom:1px solid var(--bdr)}
+.det-subj{font-size:18px;font-weight:700;letter-spacing:-.3px;line-height:1.3}
+.det-meta{display:flex;align-items:center;gap:10px;margin-top:10px}
+.det-avatar{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.det-from{font-size:13px;font-weight:600}.det-addr{font-size:11px;color:var(--mt)}
+.det-time{font-size:11px;color:var(--mt);margin-left:auto;font-family:'JetBrains Mono',monospace}
+.det-tags{margin-top:10px;display:flex;gap:5px}
+.det-body{padding:16px 20px;font-size:13px;line-height:1.7;color:var(--fgd)}
+.det-body p{margin-bottom:10px}
+.det-actions{padding:14px 20px;border-top:1px solid var(--bdr);display:flex;gap:8px}
+.det-btn{flex:1;padding:11px;border-radius:9px;border:1.5px solid var(--bdr);background:var(--card);color:var(--fg);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+.det-btn:active{background:var(--card-h)}
+.det-btn.pri{background:var(--ac);color:#0D0F14;border-color:var(--ac)}
+
+/* Settings */
+.set-grp{padding:0 20px;margin-bottom:20px}
+.set-grp-title{font-size:11px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.set-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:11px;background:var(--card);border:1px solid var(--bdr);margin-bottom:5px}
+.set-left{display:flex;align-items:center;gap:10px}
+.set-left i{color:var(--fgd);font-size:15px;width:18px;text-align:center}
+.set-lbl{font-size:13px;font-weight:500}.set-desc{font-size:10px;color:var(--mt);margin-top:1px}
+.toggle{width:42px;height:23px;border-radius:12px;background:var(--bdr);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--ac)}.toggle::after{content:'';position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:10px;background:#fff;transition:transform .2s}
+.toggle.on::after{transform:translateX(19px)}
+.set-chev{color:var(--mt);font-size:13px}
+
+/* Empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 36px;text-align:center}
+.empty-icon{font-size:44px;color:var(--bdr);margin-bottom:14px}
+.empty-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.empty-desc{font-size:12px;color:var(--mt);line-height:1.6}
+
+/* Toast */
+.toast-c{position:fixed;top:calc(var(--stp) + 12px);left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:6px;pointer-events:none;max-width:420px;width:calc(100% - 32px)}
+.toast{padding:12px 16px;border-radius:11px;background:var(--card);border:1px solid var(--bdr);color:var(--fg);font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;animation:tIn .3s ease forwards;box-shadow:0 8px 32px rgba(0,0,0,.4);pointer-events:auto}
+.toast.out{animation:tOut .3s ease forwards}
+.toast i{font-size:14px}
+@keyframes tIn{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes tOut{to{opacity:0;transform:translateY(-14px)}}
+.bg-glow{position:absolute;width:280px;height:280px;border-radius:50%;filter:blur(100px);opacity:.035;pointer-events:none}
+.syncing .header-btn i{animation:spin 1s linear infinite}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="bg-glow" style="top:-100px;left:-80px;background:var(--ac)"></div>
+<div class="bg-glow" style="bottom:-100px;right:-80px;background:var(--inf)"></div>
+<div class="toast-c" id="toasts"></div>
+
+<!-- Splash -->
+<div class="screen active" id="splash">
+  <div class="sp-logo"><i class="fas fa-layer-group"></i></div>
+  <div class="sp-txt">MailTriage</div>
+  <div class="sp-sub">Smart email, zero noise</div>
+  <div class="sp-bar"><div class="sp-fill"></div></div>
+</div>
+
+<!-- Setup -->
+<div class="screen" id="setup">
+  <div class="setup-hero">
+    <div class="sp-logo"><i class="fas fa-layer-group"></i></div>
+    <div class="setup-title">Welcome to MailTriage</div>
+    <div class="setup-desc">Your emails get sorted into action tickets, FYI items, subscriptions, and better deals — automatically.</div>
+  </div>
+  <button class="btn-primary" id="demoBtn"><i class="fas fa-play"></i> Try with demo data</button>
+  <div class="setup-divider">Connect real email</div>
+  <div class="input-group">
+    <label class="input-label">Client ID <a href="#" id="howToLink">How to get this?</a></label>
+    <input class="input-field" id="clientIdInput" placeholder="Paste your OAuth Client ID here">
+  </div>
+  <div class="providers">
+    <button class="provider-btn google" id="gmailBtn"><i class="fab fa-google"></i><span>Gmail</span></button>
+    <button class="provider-btn outlook" id="outlookBtn"><i class="fab fa-microsoft"></i><span>Outlook</span></button>
+  </div>
+  <div class="setup-note"><i class="fas fa-shield-halved"></i> Read-only access. Your data never leaves your browser.</div>
+</div>
+
+<!-- How-to modal (inline) -->
+<div class="screen" id="howTo" style="z-index:85;background:var(--bg);padding:20px;overflow-y:auto">
+  <button class="det-back" id="howToBack"><i class="fas fa-arrow-left"></i> Back</button>
+  <div style="padding:0 4px 40px">
+    <div style="font-size:20px;font-weight:700;margin-bottom:16px">How to get a Client ID</div>
+    <div style="font-size:14px;font-weight:700;color:var(--ac);margin:16px 0 8px">Gmail (Google Cloud)</div>
+    <ol style="font-size:12px;color:var(--fgd);line-height:2;padding-left:18px">
+      <li>Go to <span style="color:var(--inf)">console.cloud.google.com</span></li>
+      <li>Create a new project (any name)</li>
+      <li>Go to APIs & Services → Library → enable <strong>Gmail API</strong></li>
+      <li>Go to APIs & Services → Credentials → Create OAuth client ID</li>
+      <li>Type: <strong>Web application</strong></li>
+      <li>Authorized JavaScript origins: add your GitHub Pages URL</li>
+      <li>Copy the Client ID and paste it in the app</li>
+    </ol>
+    <div style="font-size:14px;font-weight:700;color:var(--inf);margin:20px 0 8px">Outlook (Azure Portal)</div>
+    <ol style="font-size:12px;color:var(--fgd);line-height:2;padding-left:18px">
+      <li>Go to <span style="color:var(--inf)">portal.azure.com</span> → App Registrations → New</li>
+      <li>Name it, select "Accounts in any organizational directory"</li>
+      <li>Copy the Application (client) ID</li>
+      <li>Go to Authentication → Add platform → <strong>Single-page application</strong></li>
+      <li>Redirect URI: your GitHub Pages URL</li>
+      <li>Go to API permissions → Add: <strong>Mail.Read</strong> and <strong>User.Read</strong></li>
+    </ol>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="screen" id="dashboard">
+  <div class="conn-bar demo" id="connBar"><div class="conn-dot"></div><span id="connText">Demo mode — using sample data</span></div>
+  <header class="app-header">
+    <div class="header-title">MailTriage</div>
+    <div class="header-actions">
+      <button class="header-btn" id="syncBtn" aria-label="Sync"><i class="fas fa-arrows-rotate"></i></button>
+      <button class="header-btn" id="notifBtn" aria-label="Notifs"><i class="fas fa-bell"></i><div class="badge" id="notifBadge">0</div></button>
+    </div>
+  </header>
+  <div class="content" id="dashContent">
+    <div class="dash-greet"><div class="dash-hello" id="dashHello">Good morning</div><div class="dash-name" id="dashName">User</div></div>
+    <div class="dash-summary">
+      <div class="sum-icon"><i class="fas fa-bolt"></i></div>
+      <div class="sum-text"><h3 id="actionCount">0 items need attention</h3><p id="syncTime">Not synced yet</p></div>
+    </div>
+    <div class="sec-title">Overview</div>
+    <div class="quick-stats">
+      <div class="stat-box"><div class="stat-val" id="statTotal" style="color:var(--fg)">0</div><div class="stat-lbl">Processed</div></div>
+      <div class="stat-box"><div class="stat-val" id="statAction" style="color:var(--dn)">0</div><div class="stat-lbl">Action</div></div>
+      <div class="stat-box"><div class="stat-val" id="statSaved" style="color:var(--ok)">0m</div><div class="stat-lbl">Saved</div></div>
+    </div>
+    <div class="sec-title">Categories</div>
+    <div class="cat-cards" id="catCards"></div>
+  </div>
+  <div class="loading-overlay" id="loadOverlay"><div class="loader"></div><div class="loader-text" id="loadText">Fetching emails...</div></div>
+  <nav class="bottom-nav" id="mainNav">
+    <div class="nav-item active" data-s="dashboard"><i class="fas fa-house"></i><span>Home</span></div>
+    <div class="nav-item" data-s="tickets"><i class="fas fa-ticket"></i><span>Tickets</span><div class="nav-badge" id="ticketDot" style="display:none"></div></div>
+    <div class="nav-item" data-s="deals"><i class="fas fa-tags"></i><span>Deals</span></div>
+    <div class="nav-item" data-s="settings"><i class="fas fa-gear"></i><span>Settings</span></div>
+  </nav>
+</div>
+
+<!-- Tickets -->
+<div class="screen" id="tickets">
+  <header class="app-header"><div class="header-title">Action Tickets</div>
+    <div class="header-actions"><button class="header-btn" id="clearBtn" aria-label="Clear"><i class="fas fa-check-double"></i></button></div>
+  </header>
+  <div class="filter-bar" id="tFilters"><div class="fchip active" data-f="all">All</div><div class="fchip" data-f="urgent">Urgent</div><div class="fchip" data-f="high">High</div><div class="fchip" data-f="normal">Normal</div></div>
+  <div class="content"><div class="swipe-hint">Tap to view and resolve</div><div class="elist" id="tList"></div></div>
+  <nav class="bottom-nav" id="tNav"><div class="nav-item" data-s="dashboard"><i class="fas fa-house"></i><span>Home</span></div><div class="nav-item active" data-s="tickets"><i class="fas fa-ticket"></i><span>Tickets</span></div><div class="nav-item" data-s="deals"><i class="fas fa-tags"></i><span>Deals</span></div><div class="nav-item" data-s="settings"><i class="fas fa-gear"></i><span>Settings</span></div></nav>
+</div>
+
+<!-- Info -->
+<div class="screen" id="infoScr">
+  <header class="app-header"><div class="header-title">FYI — No Action Needed</div></header>
+  <div class="content"><div class="swipe-hint">Information only</div><div class="elist" id="iList"></div></div>
+  <nav class="bottom-nav" id="iNav"><div class="nav-item" data-s="dashboard"><i class="fas fa-house"></i><span>Home</span></div><div class="nav-item" data-s="tickets"><i class="fas fa-ticket"></i><span>Tickets</span></div><div class="nav-item" data-s="deals"><i class="fas fa-tags"></i><span>Deals</span></div><div class="nav-item" data-s="settings"><i class="fas fa-gear"></i><span>Settings</span></div></nav>
+</div>
+
+<!-- Subs -->
+<div class="screen" id="subsScr">
+  <header class="app-header"><div class="header-title">Subscriptions</div></header>
+  <div class="content"><div class="swipe-hint">Newsletters and mailing lists</div><div class="elist" id="sList"></div></div>
+  <nav class="bottom-nav" id="sNav"><div class="nav-item" data-s="dashboard"><i class="fas fa-house"></i><span>Home</span></div><div class="nav-item" data-s="tickets"><i class="fas fa-ticket"></i><span>Tickets</span></div><div class="nav-item" data-s="deals"><i class="fas fa-tags"></i><span>Deals</span></div><div class="nav-item" data-s="settings"><i class="fas fa-gear"></i><span>Settings</span></div></nav>
+</div>
+
+<!-- Deals -->
+<div class="screen" id="deals">
+  <header class="app-header"><div class="header-title">Better Deals Found</div><div class="header-actions"><button class="header-btn" aria-label="Filter"><i class="fas fa-sliders"></i></button></div></header>
+  <div class="filter-bar" id="dFilters"><div class="fchip active" data-f="all">All deals</div><div class="fchip" data-f="software">Software</div><div class="fchip" data-f="hardware">Hardware</div><div class="fchip" data-f="services">Services</div></div>
+  <div class="content" id="dContent"></div>
+  <nav class="bottom-nav" id="dNav"><div class="nav-item" data-s="dashboard"><i class="fas fa-house"></i><span>Home</span></div><div class="nav-item" data-s="tickets"><i class="fas fa-ticket"></i><span>Tickets</span></div><div class="nav-item active" data-s="deals"><i class="fas fa-tags"></i><span>Deals</span></div><div class="nav-item" data-s="settings"><i class="fas fa-gear"></i><span>Settings</span></div></nav>
+</div>
+
+<!-- Other -->
+<div class="screen" id="otherScr">
+  <header class="app-header"><div class="header-title">Other</div></header>
+  <div class="content"><div class="swipe-hint">Uncategorized items</div><div class="elist" id="oList"></div></div>
+  <nav class="bottom-nav" id="oNav"><div class="nav-item" data-s="dashboard"><i class="fas fa-house"></i><span>Home</span></div><div class="nav-item" data-s="tickets"><i class="fas fa-ticket"></i><span>Tickets</span></div><div class="nav-item" data-s="deals"><i class="fas fa-tags"></i><span>Deals</span></div><div class="nav-item" data-s="settings"><i class="fas fa-gear"></i><span>Settings</span></div></nav>
+</div>
+
+<!-- Settings -->
+<div class="screen" id="settings">
+  <header class="app-header"><div class="header-title">Settings</div></header>
+  <div class="content">
+    <div class="set-grp">
+      <div class="set-grp-title">Email Connection</div>
+      <div class="set-item"><div class="set-left"><i class="fas fa-envelope"></i><div><div class="set-lbl" id="setEmail">Not connected</div><div class="set-desc" id="setProvider">No provider</div></div></div><div style="font-size:11px;font-weight:600" id="setConnStatus">Demo</div></div>
+      <div class="set-item" id="discBtn" style="cursor:pointer"><div class="set-left"><i class="fas fa-right-from-bracket"></i><div><div class="set-lbl">Disconnect</div><div class="set-desc">Return to setup screen</div></div></div><i class="fas fa-chevron-right set-chev"></i></div>
+    </div>
+    <div class="set-grp">
+      <div class="set-grp-title">Triage Engine</div>
+      <div class="set-item"><div class="set-left"><i class="fas fa-brain"></i><div><div class="set-lbl">Auto-categorize</div><div class="set-desc">Sort incoming emails automatically</div></div></div><div class="toggle on" data-k="auto"></div></div>
+      <div class="set-item"><div class="set-left"><i class="fas fa-tags"></i><div><div class="set-lbl">Deal detection</div><div class="set-desc">Find better prices from subscriptions</div></div></div><div class="toggle on" data-k="deals"></div></div>
+      <div class="set-item"><div class="set-left"><i class="fas fa-gauge-high"></i><div><div class="set-lbl">Priority sensitivity</div><div class="set-desc">How aggressively to flag items</div></div></div><div style="color:var(--ac);font-size:12px;font-weight:600">Medium</div></div>
+      <div class="set-item"><div class="set-left"><i class="fas fa-download"></i><div><div class="set-lbl">Emails per sync</div><div class="set-desc">How many to fetch each time</div></div></div><div style="color:var(--ac);font-size:12px;font-weight:600">20</div></div>
+    </div>
+    <div class="set-grp">
+      <div class="set-grp-title">Notifications</div>
+      <div class="set-item"><div class="set-left"><i class="fas fa-bell"></i><div><div class="set-lbl">Push notifications</div><div class="set-desc">Alert for new action tickets</div></div></div><div class="toggle on" data-k="push"></div></div>
+      <div class="set-item"><div class="set-left"><i class="fas fa-moon"></i><div><div class="set-lbl">Quiet hours</div><div class="set-desc">10 PM — 7 AM</div></div></div><div class="toggle on" data-k="quiet"></div></div>
+    </div>
+    <div class="set-grp"><div class="set-grp-title">About</div><div class="set-item"><div class="set-left"><i class="fas fa-info-circle"></i><div><div class="set-lbl">MailTriage v1.0</div><div class="set-desc">Client-side email triage engine</div></div></div></div></div>
+  </div>
+  <nav class="bottom-nav" id="setNav"><div class="nav-item" data-s="dashboard"><i class="fas fa-house"></i><span>Home</span></div><div class="nav-item" data-s="tickets"><i class="fas fa-ticket"></i><span>Tickets</span></div><div class="nav-item" data-s="deals"><i class="fas fa-tags"></i><span>Deals</span></div><div class="nav-item active" data-s="settings"><i class="fas fa-gear"></i><span>Settings</span></div></nav>
+</div>
+
+<!-- Email Detail -->
+<div class="screen" id="emailDetail">
+  <button class="det-back" id="detBack"><i class="fas fa-arrow-left"></i> Back</button>
+  <div class="content" id="detContent" style="padding-bottom:80px"></div>
+  <div class="det-actions" id="detActions"></div>
+</div>
+</div>
+
+<!-- Google Identity Services -->
+<script async defer src="https://accounts.google.com/gsi/client"></script>
+<!-- MSAL for Outlook -->
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 1: TRIAGE ENGINE — categorizes emails by signal analysis
+   ═══════════════════════════════════════════════════════════════ */
+const TriageEngine = {
+  categorize(email) {
+    const t = `${email.subject} ${email.snippet}`.toLowerCase();
+    const s = email.from.toLowerCase();
+    const scores = { tickets:0, info:0, subs:0, deals:0, other:0 };
+
+    // ── URGENT / TICKET signals ──
+    if (/\b(urgent|asap|immediate|emergency|critical|fire)\b/.test(t)) scores.tickets += 15;
+    if (/\b(by eod|by end of day|before \d|deadline|expires?\b|overdue)\b/.test(t)) scores.tickets += 12;
+    if (/\b(cpu|down|outage|incident|alert|error rate|prod-|p0|p1|sev[12])\b/.test(t)) scores.tickets += 14;
+    if (/\b(review|approve|approval|sign|signature needed)\b/.test(t)) scores.tickets += 10;
+    if (/\b(feedback|thoughts|input needed|decision)\b/.test(t)) scores.tickets += 8;
+    if (/\b(please|could you|would you|can you|need you|i need)\b/.test(t)) scores.tickets += 6;
+    if (/\b(proposal|contract|agreement|nda)\b/.test(t)) scores.tickets += 9;
+    if (/\b(self-assessment|performance review|appraisal)\b/.test(t)) scores.tickets += 8;
+    if (/[A-Z]{5,}/.test(email.subject)) scores.tickets += 5; // ALL CAPS urgency
+    if (/!{2,}/.test(email.subject)) scores.tickets += 4;
+
+    // ── FYI signals ──
+    if (/\b(fyi|for your info|no action|no reply|for reference|just sharing)\b/.test(t)) scores.info += 15;
+    if (/\b(notes|minutes|recap|retro|standup|wrap-up)\b/.test(t)) scores.info += 10;
+    if (/\b(digest|summary|roundup|round-up|highlights)\b/.test(t)) scores.info += 8;
+    if (/\b(schedule|calendar|holiday|office hours|pto|time off)\b/.test(t)) scores.info += 6;
+    if (/\b(expense report|receipt|reimbursement)\b/.test(t)) scores.info += 5;
+    if (/\b(security|phishing|mfa|vulnerability|patched)\b/.test(t)) scores.info += 7;
+
+    // ── SUBSCRIPTION signals ──
+    if (/\b(newsletter|unsubscribe|manage preferences|mailing list)\b/.test(t)) scores.subs += 14;
+    if (/\b(weekly|monthly|daily|issue #|edition)\b/.test(t)) scores.subs += 8;
+    if (/\b(dribbble shot|top stories|hacker news|this week in)\b/.test(t)) scores.subs += 10;
+    if (/(noreply|no-reply|donotreply|newsletter@|digest@|update@|shots@|mail@)/.test(s)) scores.subs += 12;
+    if (/(dribbble\.com|substack\.com|medium\.com|btn\.gg)/.test(s)) scores.subs += 10;
+
+    // ── DEAL signals ──
+    if (/\b(save|saving|discount|cheaper|better price|lower cost)\b/.test(t)) scores.deals += 12;
+    if (/\b(alternative|instead of|switch to|consider switching)\b/.test(t)) scores.deals += 10;
+    if (/\b(renew|renewal|renews|expiring soon|plan expires)\b/.test(t)) scores.deals += 11;
+    if (/\b(\$\d+|% off|% less|\d+% saving)/.test(t)) scores.deals += 8;
+    if (/\b(pricing|upgrade|downgrade|per user|per month)\b/.test(t)) scores.deals += 5;
+    if (/\b(reserved instance|cost optim|spend.*save|budget)\b/.test(t)) scores.deals += 9;
+    if (/\b(included in your|already paying|no extra cost)\b/.test(t)) scores.deals += 7;
+
+    // ── Bulk sender penalty (less likely to be tickets) ──
+    if (/(noreply|no-reply|notifications?@|updates?@|mail@)/.test(s)) scores.tickets -= 8;
+
+    // ── Determine winner ──
+    let best = 'other', bestScore = 0;
+    for (const [cat, score] of Object.entries(scores)) {
+      if (score > bestScore) { bestScore = score; best = cat; }
+    }
+
+    // If top score is very low, it's "other"
+    if (bestScore < 5) best = 'other';
+
+    // Determine priority for tickets
+    let priority = 'normal';
+    if (best === 'tickets') {
+      if (scores.tickets >= 20) priority = 'urgent';
+      else if (scores.tickets >= 12) priority = 'high';
+    }
+
+    // Extract potential saving percentage for deals
+    let saving = null;
+    if (best === 'deals') {
+      const m = t.match(/(\d+)%\s*(off|less|save|saving)/);
+      if (m) saving = m[1] + '%';
+      const m2 = t.match(/save\s*\$?([\d,.]+)/);
+      if (!saving && m2) saving = '$' + m2[1];
+    }
+
+    return { category: best, priority, saving, scores };
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 2: STORAGE — localStorage persistence layer
+   ═══════════════════════════════════════════════════════════════ */
+const Store = {
+  _k(key) { return `mt_${key}`; },
+  get(key, fallback=null) {
+    try { const v = localStorage.getItem(this._k(key)); return v ? JSON.parse(v) : fallback; }
+    catch { return fallback; }
+  },
+  set(key, val) { try { localStorage.setItem(this._k(key), JSON.stringify(val)); } catch {} },
+  remove(key) { localStorage.removeItem(this._k(key)); },
+  clear() { Object.keys(localStorage).filter(k=>k.startsWith('mt_')).forEach(k=>localStorage.removeItem(k)); }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3: GMAIL API CLIENT — fetches and parses real emails
+   ═══════════════════════════════════════════════════════════════ */
+const GmailClient = {
+  tokenClient: null,
+  accessToken: null,
+
+  init(clientId) {
+    return new Promise((resolve, reject) => {
+      if (typeof google === 'undefined' || !google.accounts) {
+        reject(new Error('Google library not loaded'));
+        return;
+      }
+      this.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.profile',
+        callback: (resp) => {
+          if (resp.error) { reject(new Error(resp.error)); return; }
+          this.accessToken = resp.access_token;
+          resolve(this.accessToken);
+        }
+      });
+      // Immediately trigger the auth flow
+      this.tokenClient.requestAccessToken({ prompt: '' });
+    });
+  },
+
+  async apiFetch(url) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${this.accessToken}` } });
+    if (res.status === 401) throw new Error('TOKEN_EXPIRED');
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return res.json();
+  },
+
+  async getProfile() {
+    return this.apiFetch('https://www.googleapis.com/oauth2/v3/userinfo');
+  },
+
+  async fetchEmails(maxResults = 20) {
+    const data = await this.apiFetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${maxResults}&labelIds=INBOX`
+    );
+    if (!data.messages) return [];
+
+    const emails = [];
+    // Fetch in batches of 5 to avoid overwhelming
+    for (let i = 0; i < data.messages.length; i += 5) {
+      const batch = data.messages.slice(i, i + 5);
+      const results = await Promise.all(
+        batch.map(msg => this.apiFetch(`https://mail.google.com/mail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`).catch(() => null))
+      );
+      // Fallback: try the standard endpoint if metadata-only fails
+      for (let j = 0; j < batch.length; j++) {
+        if (results[j] && results[j].error) {
+          results[j] = await this.apiFetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${batch[j].id}?format=full`
+          ).catch(() => null);
+        }
+      }
+      for (const r of results) {
+        if (r && !r.error && r.payload) {
+          emails.push(this.parseMessage(r));
+        }
+      }
+    }
+    return emails;
+  },
+
+  parseMessage(msg) {
+    const headers = {};
+    (msg.payload.headers || []).forEach(h => { headers[h.name.toLowerCase()] = h.value; });
+
+    // Get body text
+    let body = '';
+    if (msg.payload.body && msg.payload.body.data) {
+      body = atob(msg.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+    } else if (msg.payload.parts) {
+      for (const part of msg.payload.parts) {
+        if (part.mimeType === 'text/plain' && part.body && part.body.data) {
+          body = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+          break;
+        }
+        if (part.mimeType === 'text/html' && part.body && part.body.data && !body) {
+          body = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/')).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+      }
+    }
+
+    // Parse sender name and email
+    let fromName = headers.from || 'Unknown';
+    let fromEmail = fromName;
+    const match = fromName.match(/^(.+?)\s*<(.+?)>$/);
+    if (match) { fromName = match[1].trim(); fromEmail = match[2].trim(); }
+
+    return {
+      id: msg.id,
+      from: fromName,
+      email: fromEmail,
+      subject: headers.subject || '(No subject)',
+      snippet: msg.snippet || '',
+      body: body || msg.snippet || '',
+      time: headers.date ? new Date(headers.date).toLocaleString() : 'Unknown',
+      timestamp: headers.date ? new Date(headers.date).getTime() : 0,
+      unread: (msg.labelIds || []).includes('UNREAD'),
+      color: this.stringToColor(fromEmail)
+    };
+  },
+
+  stringToColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const colors = ['#E85D4A','#D4922A','#3B82F6','#8B5CF6','#EC4899','#10B981','#F97316','#0EA5E9','#6366F1','#DC2626','#06B6D4','#A78BFA'];
+    return colors[Math.abs(hash) % colors.length];
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 4: OUTLOOK CLIENT — Microsoft Graph API
+   ═══════════════════════════════════════════════════════════════ */
+const OutlookClient = {
+  instance: null,
+  accessToken: null,
+
+  init(clientId) {
+    return new Promise((resolve, reject) => {
+      if (typeof msal === 'undefined') { reject(new Error('MSAL not loaded')); return; }
+      const msalConfig = {
+        auth: { clientId, authority: 'https://login.microsoftonline.com/common' },
+        cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false }
+      };
+      this.instance = new msal.PublicClientApplication(msalConfig);
+      this.instance.loginPopup({ scopes: ['Mail.Read', 'User.Read'] })
+        .then(resp => { this.accessToken = resp.accessToken; resolve(this.accessToken); })
+        .catch(err => reject(err));
+    });
+  },
+
+  async apiFetch(url) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${this.accessToken}` } });
+    if (res.status === 401) throw new Error('TOKEN_EXPIRED');
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    return res.json();
+  },
+
+  async getProfile() {
+    return this.apiFetch('https://graph.microsoft.com/v1.0/me');
+  },
+
+  async fetchEmails(maxResults = 20) {
+    const data = await this.apiFetch(
+      `https://graph.microsoft.com/v1.0/me/messages?$top=${maxResults}&$select=subject,from,receivedDateTime,bodyPreview,isRead,id&$orderby=receivedDateTime desc`
+    );
+    if (!data.value) return [];
+    return data.value.map(msg => ({
+      id: msg.id,
+      from: msg.from?.emailAddress?.name || 'Unknown',
+      email: msg.from?.emailAddress?.address || '',
+      subject: msg.subject || '(No subject)',
+      snippet: msg.bodyPreview || '',
+      body: msg.bodyPreview || '',
+      time: new Date(msg.receivedDateTime).toLocaleString(),
+      timestamp: new Date(msg.receivedDateTime).getTime(),
+      unread: !msg.isRead,
+      color: GmailClient.stringToColor(msg.from?.emailAddress?.address || '')
+    }));
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 5: MOCK DATA — realistic demo dataset
+   ═══════════════════════════════════════════════════════════════ */
+const MOCK_EMAILS = [
+  { id:'m1', from:'Sarah Chen', email:'sarah.chen@clientcorp.com', subject:'Contract renewal — signature needed by EOD', snippet:'Hi, the contract we discussed last week needs your signature before 5pm today. I\'ve attached the final version with all amendments.', body:'<p>Hi,</p><p>The contract we discussed last week needs your signature before 5pm today. I\'ve attached the final version with all the amendments we agreed on.</p><p>Key changes:<br>• Payment terms moved to Net-30<br>• Added clause 4.2 for data handling<br>• Updated scope to include Phase 2 deliverables</p><p>Please review and sign.</p><p>Thanks,<br>Sarah</p>', time:'9:14 AM', timestamp:Date.now()-3600000, unread:true, color:'#E85D4A' },
+  { id:'m2', from:'DevOps Alert', email:'alerts@infra.internal', subject:'PROD-03 CPU at 94% — immediate action required', snippet:'Production server PROD-03 has sustained CPU usage above 90% for the last 15 minutes. Auto-scaling failed to trigger.', body:'<p><strong>INCIDENT ALERT</strong></p><p>Production server PROD-03: CPU 94.2%, Memory 78%, Error rate 3.1%</p><p>Recommended: check runaway processes, manually trigger scale-up, review recent deployments.</p>', time:'8:47 AM', timestamp:Date.now()-5400000, unread:true, color:'#DC2626' },
+  { id:'m3', from:'Marcus Webb', email:'marcus@partnerco.io', subject:'Q4 partnership proposal — review and feedback', snippet:'Following our call yesterday, I\'ve put together the Q4 partnership framework. Would love your thoughts on the revenue share model.', body:'<p>Hey,</p><p>The Q4 partnership framework is ready. Revenue split suggestion: 60/40. I need your input before the board meeting on Thursday.</p><p>Cheers,<br>Marcus</p>', time:'8:12 AM', timestamp:Date.now()-7200000, unread:true, color:'#F59E0B' },
+  { id:'m4', from:'HR Department', email:'hr@company.com', subject:'Annual review self-assessment due Friday', snippet:'Reminder: Your annual performance self-assessment is due this Friday. Please complete it in the HR portal.', body:'<p>Your self-assessment is due Friday. Complete it in HR Portal > Performance > 2024 Review.</p>', time:'Yesterday', timestamp:Date.now()-86400000, unread:true, color:'#8B5CF6' },
+  { id:'m5', from:'Lisa Torres', email:'lisa@designlab.co', subject:'Brand guidelines update — approval requested', snippet:'The updated brand guidelines are ready for your review. Main changes include the new color palette.', body:'<p>Updated brand guidelines ready. New color palette, dark mode variants, new illustration style. Need your sign-off by end of week.</p>', time:'Yesterday', timestamp:Date.now()-90000000, unread:false, color:'#EC4899' },
+  { id:'m6', from:'Engineering Lead', email:'eng-lead@company.com', subject:'Sprint 24 retrospective notes', snippet:'Sharing the retro notes from yesterday. Key takeaways: deployment frequency improved 40%, but flaky tests remain.', body:'<p><strong>What went well:</strong> Deployment freq +40%, zero P1 incidents<br><strong>Needs improvement:</strong> Flaky tests, PR review turnaround 18hrs (target 8)</p>', time:'6:30 PM', timestamp:Date.now()-100000000, unread:true, color:'#3B82F6' },
+  { id:'m7', from:'Finance Team', email:'finance@company.com', subject:'December expense report deadline', snippet:'All December expenses must be submitted by January 3rd. Receipts over $25 require itemized documentation.', body:'<p>December expenses due Jan 3. Receipts over $25 need itemization. Use updated categories in the portal.</p>', time:'4:15 PM', timestamp:Date.now()-110000000, unread:false, color:'#06B6D4' },
+  { id:'m8', from:'Office Manager', email:'office@company.com', subject:'Holiday office schedule — Dec 23 to Jan 3', snippet:'The office will be closed Dec 24-26 and Jan 1. Dec 23 and Dec 27-31 are optional work days.', body:'<p>Closed: Dec 24-26, Jan 1. Optional: Dec 23, Dec 27-31. Badge access remains active.</p>', time:'2:00 PM', timestamp:Date.now()-115000000, unread:false, color:'#10B981' },
+  { id:'m9', from:'Security Team', email:'security@company.com', subject:'Monthly security digest — November', snippet:'No critical vulnerabilities detected. 12 low-severity items patched. Phishing simulation: 8% click rate.', body:'<p>November: 0 critical, 0 high, 12 low (patched). Phishing sim: 8% click rate (down from 12%). MFA adoption: 97%.</p>', time:'Mon', timestamp:Date.now()-200000000, unread:false, color:'#6366F1' },
+  { id:'m10', from:'The Pragmatic Engineer', email:'newsletter@pragmaticengineer.com', subject:'How Big Tech handles incident response', snippet:'This week: a deep dive into incident response practices at Meta, Google, and Stripe.', body:'<p>Deep dive into incident response at major tech companies. Also: why senior engineers are switching to smaller companies.</p>', time:'7:00 AM', timestamp:Date.now()-250000000, unread:true, color:'#F97316' },
+  { id:'m11', from:'Stratechery', email:'ben@stratechery.com', subject:'The AI infrastructure buildout and its discontents', snippet:'The gap between AI investment and AI revenue continues to widen. This analysis explores whether the infrastructure buildout is rational.', body:'<p>AI investment vs revenue gap analysis. Current spend justified by option value of future capabilities.</p>', time:'Tue', timestamp:Date.now()-300000000, unread:false, color:'#0EA5E9' },
+  { id:'m12', from:'Dribbble', email:'shots@dribbble.com', subject:'Top shots this week — UI design inspiration', snippet:'Curated picks: dashboard designs, mobile onboarding flows, and a stunning SaaS landing page.', body:'<p>This week: dashboard designs, mobile onboarding flows, dark mode done right. Shot of the week by @pixelcraft.</p>', time:'Mon', timestamp:Date.now()-350000000, unread:false, color:'#EA4C89' },
+  { id:'m13', from:'Notion', email:'billing@notion.so', subject:'Your plan renews in 5 days — we found a better option', snippet:'Your Team plan ($10/user/mo) renews Dec 22. Found: Same features at $8/user/mo via annual billing + 20% promo = 36% saving.', body:'<p><strong>Deal Alert</strong><br>Current: $10/user/mo monthly<br>Better: $8/user/mo annual + code HOLIDAY2024 = $6.40/user/mo year 1<br><strong>Saving: 36%</strong></p>', time:'10:00 AM', timestamp:Date.now()-400000000, unread:true, color:'#000000', dealCat:'software' },
+  { id:'m14', from:'GitHub', email:'receipts@github.com', subject:'GitHub Copilot renewal — competitor alternative found', snippet:'Your Copilot Business ($19/user/mo) renews Jan 5. Alternative: Cursor Pro includes AI coding at $20/mo flat — 79% saving for 5 users.', body:'<p><strong>Deal Alert</strong><br>Current: $19/user/mo × 5 = $95/mo<br>Alternative: Cursor Pro $20/mo total<br><strong>Saving: 79%</strong></p>', time:'Yesterday', timestamp:Date.now()-450000000, unread:true, color:'#6e40c9', dealCat:'software' },
+  { id:'m15', from:'AWS', email:'billing@aws.amazon.com', subject:'EC2 costs up 23% — Reserved Instances would save $340/mo', snippet:'4 instances running 24/7 for 90+ days qualify for Reserved Instances. Estimated savings: $340/mo ($4,080/year).', body:'<p><strong>Cost Optimization</strong><br>Current: $1,480/mo on-demand<br>Reserved: ~$1,140/mo<br><strong>Saving: $340/mo (23%)</strong></p>', time:'2 days ago', timestamp:Date.now()-500000000, unread:true, color:'#FF9900', dealCat:'hardware' },
+  { id:'m16', from:'Zoom', email:'no-reply@zoom.us', subject:'Switching to Google Meet could save $180/year', snippet:'Your Zoom Pro plan: $13.33/mo. Google Meet is included in your existing Workspace Business plan at no extra cost — 100% saving.', body:'<p><strong>Deal Alert</strong><br>Current: Zoom Pro $13.33/mo = $159.96/year<br>Alternative: Google Meet $0 (included in Workspace)<br><strong>Saving: 100%</strong></p>', time:'3 days ago', timestamp:Date.now()-550000000, unread:false, color:'#2D8CFF', dealCat:'services' },
+  { id:'m17', from:'LinkedIn', email:'notifications@linkedin.com', subject:'5 people viewed your profile this week', snippet:'Your profile was viewed by a recruiter at Spotify and an engineering manager at Stripe.', body:'<p>5 profile views this week. Notable: Spotify recruiter, Stripe engineering manager.</p>', time:'4:30 PM', timestamp:Date.now()-600000000, unread:false, color:'#0A66C2' },
+  { id:'m18', from:'Figma', email:'updates@figma.com', subject:'What\'s new in Figma — December 2024', snippet:'New features: AI-powered auto-layout suggestions, improved dev mode handoff, and new whiteboard templates.', body:'<p>December updates: AI auto-layout (beta), improved dev mode, 50+ whiteboard templates, 30% faster on large files.</p>', time:'Wed', timestamp:Date.now()-650000000, unread:false, color:'#A259FF' },
+  { id:'m19', from:'Calendar', email:'calendar@google.com', subject:'Tomorrow: Team standup at 9:30 AM', snippet:'You have 3 meetings tomorrow: Team standup (9:30 AM), 1:1 with David (2:00 PM), Design review (4:00 PM).', body:'<p>Tomorrow: 9:30 Standup, 2:00 1:1 with David, 4:00 Design review. No conflicts.</p>', time:'5:00 PM', timestamp:Date.now()-700000000, unread:false, color:'#4285F4' },
+  { id:'m20', from:'Hacker News', email:'hn@ycombinator.com', subject:'Top stories: Rust in production, Postgres 17 features', snippet:'HN Digest: 1. Why we migrated 2M lines of Java to Rust (847 points) 2. Postgres 17: everything new (623 points).', body:'<p>Top: Rust migration (847pts), Postgres 17 (623pts), Microservices cost (591pts), Compiler in 2024 (502pts).</p>', time:'Sun', timestamp:Date.now()-750000000, unread:false, color:'#FF6600' }
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 6: APP STATE
+   ═══════════════════════════════════════════════════════════════ */
+const state = {
+  screen: 'splash',
+  provider: null, // 'demo' | 'gmail' | 'outlook'
+  userName: '',
+  userEmail: '',
+  emails: [],      // raw fetched emails
+  categorized: [], // emails with triage results attached
+  resolved: new Set(Store.get('resolved', [])),
+  tFilter: 'all',
+  dFilter: 'all',
+  lastSync: null,
+  previousScreen: 'dashboard'
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 7: HELPERS
+   ═══════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+function initials(name) { return (name||'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function greeting() { const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; }
+
+function toast(msg, icon='fa-check', color='var(--ok)') {
+  const c = $('#toasts'), t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<i class="fas ${icon}" style="color:${color}"></i><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function showScreen(id) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const el = $(`#${id}`);
+  if (el) { el.classList.add('active'); state.screen = id; }
+}
+
+function showLoading(text='Fetching emails...') {
+  $('#loadText').textContent = text;
+  $('#loadOverlay').classList.add('show');
+}
+function hideLoading() { $('#loadOverlay').classList.remove('show'); }
+
+function emailsByCat(cat, filter) {
+  return state.categorized.filter(e => {
+    if (e.category !== cat) return false;
+    if (filter && filter !== 'all') {
+      if (cat === 'tickets' && e.priority !== filter) return false;
+      if (cat === 'deals' && e.dealCat !== filter) return false;
+    }
+    return !state.resolved.has(e.id);
+  });
+}
+
+function counts() {
+  const c = { tickets:0, info:0, subs:0, deals:0, other:0 };
+  state.categorized.forEach(e => { if (c[e.category] !== undefined && !state.resolved.has(e.id)) c[e.category]++; });
+  return c;
+}
+
+function persistResolved() { Store.set('resolved', [...state.resolved]); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 8: CATEGORIZE ALL EMAILS
+   ═══════════════════════════════════════════════════════════════ */
+function runTriage() {
+  state.categorized = state.emails.map(e => {
+    const result = TriageEngine.categorize(e);
+    return { ...e, ...result };
+  });
+  // Sort: tickets first (urgent > high > normal), then deals, then rest
+  const pOrder = { urgent:0, high:1, normal:2, low:3 };
+  const cOrder = { tickets:0, deals:1, info:2, subs:3, other:4 };
+  state.categorized.sort((a, b) => {
+    if (cOrder[a.category] !== cOrder[b.category]) return cOrder[a.category] - cOrder[b.category];
+    if (a.category === 'tickets' && b.category === 'tickets') return (pOrder[a.priority]||2) - (pOrder[b.priority]||2);
+    return b.timestamp - a.timestamp;
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 9: UI RENDERING
+   ═══════════════════════════════════════════════════════════════ */
+function renderDashboard() {
+  const c = counts();
+  $('#dashHello').textContent = greeting();
+  $('#dashName').textContent = state.userName || 'User';
+  $('#actionCount').textContent = `${c.tickets} item${c.tickets!==1?'s':''} need${c.tickets===1?'s':''} your attention`;
+  $('#statTotal').textContent = state.categorized.length;
+  $('#statAction').textContent = c.tickets;
+  const saved = Math.round(state.categorized.length * 4.2);
+  $('#statSaved').textContent = saved >= 60 ? `${Math.round(saved/60)}h` : `${saved}m`;
+  $('#syncTime').textContent = state.lastSync ? `Last sync: ${new Date(state.lastSync).toLocaleTimeString()}` : 'Not synced yet';
+  $('#notifBadge').textContent = c.tickets + c.deals;
+  $('#notifBadge').style.display = (c.tickets + c.deals) > 0 ? 'flex' : 'none';
+  $('#ticketDot').style.display = c.tickets > 0 ? 'block' : 'none';
+
+  const cats = [
+    { key:'tickets', screen:'tickets', cls:'ct', icon:'fa-ticket', name:'Action Tickets', desc:'Emails needing your response', count:c.tickets },
+    { key:'info', screen:'infoScr', cls:'ci', icon:'fa-circle-info', name:'FYI — Read Only', desc:'Informational, no action needed', count:c.info },
+    { key:'subs', screen:'subsScr', cls:'cs', icon:'fa-envelope-open-text', name:'Subscriptions', desc:'Newsletters and mailing lists', count:c.subs },
+    { key:'deals', screen:'deals', cls:'cd', icon:'fa-tags', name:'Better Deals', desc:'Cheaper alternatives found', count:c.deals },
+    { key:'other', screen:'otherScr', cls:'co', icon:'fa-inbox', name:'Other', desc:'Uncategorized items', count:c.other }
+  ];
+  $('#catCards').innerHTML = cats.map(c => `
+    <div class="cat-card ${c.cls}" data-goto="${c.screen}">
+      <div class="cat-icon"><i class="fas ${c.icon}"></i></div>
+      <div class="cat-info"><div class="cat-name">${c.name}</div><div class="cat-desc">${c.desc}</div></div>
+      <div class="cat-count">${c.count}</div>
+      <i class="fas fa-chevron-right cat-chev"></i>
+    </div>`).join('');
+  $$('.cat-card').forEach(card => card.addEventListener('click', () => {
+    const s = card.dataset.goto; showScreen(s); renderList(s);
+  }));
+
+  // Connection bar
+  const bar = $('#connBar');
+  if (state.provider === 'demo') { bar.className = 'conn-bar demo'; $('#connText').textContent = 'Demo mode — using sample data'; }
+  else if (state.provider === 'gmail') { bar.className = 'conn-bar ok'; $('#connText').textContent = `Gmail connected — ${state.lastSync ? 'last sync ' + new Date(state.lastSync).toLocaleTimeString() : 'ready'}`; }
+  else if (state.provider === 'outlook') { bar.className = 'conn-bar ok'; $('#connText').textContent = `Outlook connected — ${state.lastSync ? 'last sync ' + new Date(state.lastSync).toLocaleTimeString() : 'ready'}`; }
+
+  // Settings
+  $('#setEmail').textContent = state.userEmail || 'Not connected';
+  $('#setProvider').textContent = state.provider === 'gmail' ? 'Google OAuth' : state.provider === 'outlook' ? 'Microsoft OAuth' : 'Demo mode';
+  $('#setConnStatus').textContent = state.provider === 'demo' ? 'Demo' : 'Connected';
+  $('#setConnStatus').style.color = state.provider === 'demo' ? 'var(--ac)' : 'var(--ok)';
+}
+
+function renderList(screenId) {
+  const map = { tickets:['tList','tickets',state.tFilter], infoScr:['iList','info',null], subsScr:['sList','subs',null], otherScr:['oList','other',null] };
+  const m = map[screenId];
+  if (m) renderEmailList(m[0], m[1], m[2]);
+  if (screenId === 'deals') renderDeals();
+}
+
+function renderEmailList(containerId, cat, filter) {
+  const emails = emailsByCat(cat, filter);
+  const el = $(`#${containerId}`);
+  if (!emails.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon"><i class="fas fa-inbox"></i></div><div class="empty-title">All clear</div><div class="empty-desc">Nothing here. New items will appear as they arrive.</div></div>`;
+    return;
+  }
+  el.innerHTML = emails.map(e => `
+    <div class="eitem ${e.unread?'unread':''}" data-id="${e.id}">
+      <div class="eavatar" style="background:${e.color}">${initials(e.from)}</div>
+      <div class="ebody">
+        <div class="efrom">${e.from}</div>
+        <div class="esubj">${e.subject}</div>
+        <div class="eprev">${e.snippet.slice(0,100)}</div>
+      </div>
+      <div class="emeta">
+        <div class="etime">${e.time}</div>
+        ${cat==='tickets'?`<div class="etag tag-${e.priority}">${e.priority}</div>`:''}
+        ${cat==='deals'&&e.saving?`<div class="etag tag-saving">Save ${e.saving}</div>`:''}
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('.eitem').forEach(item => item.addEventListener('click', () => {
+    const email = state.categorized.find(e => e.id === item.dataset.id);
+    if (email) { email.unread = false; renderDetail(email); showScreen('emailDetail'); }
+  }));
+}
+
+function renderDeals() {
+  const emails = emailsByCat('deals', state.dFilter);
+  const el = $('#dContent');
+  if (!emails.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon"><i class="fas fa-tag"></i></div><div class="empty-title">No deals found</div><div class="empty-desc">Deal alternatives appear when the engine finds cheaper options for your subscriptions.</div></div>`;
+    return;
+  }
+  const imgs = { software:'https://picsum.photos/seed/soft/128/128.jpg', hardware:'https://picsum.photos/seed/hard/128/128.jpg', services:'https://picsum.photos/seed/serv/128/128.jpg' };
+  el.innerHTML = emails.map(e => `
+    <div class="deal-card" data-id="${e.id}">
+      <img class="deal-img" src="${imgs[e.dealCat]||imgs.software}" alt="${e.from}">
+      <div class="deal-info">
+        <div class="deal-brand">${e.from}</div>
+        <div class="deal-title">${e.subject.replace(/—.*/,'').trim()}</div>
+        ${e.saving?`<div class="deal-save">Save ${e.saving}</div>`:''}
+      </div>
+      <i class="fas fa-chevron-right deal-chev"></i>
+    </div>`).join('');
+  el.querySelectorAll('.deal-card').forEach(card => card.addEventListener('click', () => {
+    const email = state.categorized.find(e => e.id === card.dataset.id);
+    if (email) { email.unread = false; renderDetail(email); showScreen('emailDetail'); }
+  }));
+}
+
+function renderDetail(e) {
+  const tags = [];
+  if (e.category === 'tickets') tags.push(`<div class="etag tag-${e.priority}" style="font-size:10px;padding:3px 8px">${e.priority.toUpperCase()}</div>`);
+  if (e.saving) tags.push(`<div class="etag tag-saving" style="font-size:10px;padding:3px 8px">SAVE ${e.saving}</div>`);
+  tags.push(`<div class="etag tag-normal" style="font-size:10px;padding:3px 8px">${e.category}</div>`);
+
+  $('#detContent').innerHTML = `
+    <div class="det-hdr">
+      <div class="det-subj">${e.subject}</div>
+      <div class="det-meta">
+        <div class="det-avatar" style="background:${e.color}">${initials(e.from)}</div>
+        <div><div class="det-from">${e.from}</div><div class="det-addr">${e.email}</div></div>
+        <div class="det-time">${e.time}</div>
+      </div>
+      <div class="det-tags">${tags.join('')}</div>
+    </div>
+    <div class="det-body">${e.body || e.snippet}</div>`;
+
+  let acts = '';
+  if (e.category === 'tickets') {
+    acts = `<button class="det-btn pri" onclick="resolveItem('${e.id}')"><i class="fas fa-check"></i> Resolve</button>
+            <button class="det-btn" onclick="snoozeItem()"><i class="fas fa-clock"></i> Snooze</button>
+            <button class="det-btn" onclick="archiveItem('${e.id}')"><i class="fas fa-archive"></i> Archive</button>`;
+  } else if (e.category === 'deals') {
+    acts = `<button class="det-btn pri" onclick="toast('Opening deal page...','fa-external-link','var(--ac)')"><i class="fas fa-external-link"></i> View Deal</button>
+            <button class="det-btn" onclick="archiveItem('${e.id}')"><i class="fas fa-xmark"></i> Dismiss</button>
+            <button class="det-btn" onclick="toast('Saved','fa-bookmark','var(--inf)')"><i class="fas fa-bookmark"></i> Save</button>`;
+  } else if (e.category === 'subs') {
+    acts = `<button class="det-btn" onclick="toast('Unsubscribed','fa-envelope-open','var(--pr)')"><i class="fas fa-envelope-open"></i> Unsubscribe</button>
+            <button class="det-btn" onclick="archiveItem('${e.id}')"><i class="fas fa-archive"></i> Archive</button>`;
+  } else {
+    acts = `<button class="det-btn" onclick="archiveItem('${e.id}')"><i class="fas fa-archive"></i> Archive</button>
+            <button class="det-btn" onclick="toast('Moved to tickets','fa-ticket','var(--dn)')"><i class="fas fa-ticket"></i> Add Ticket</button>`;
+  }
+  $('#detActions').innerHTML = acts;
+}
+
+function renderAll() {
+  renderDashboard();
+  renderEmailList('tList', 'tickets', state.tFilter);
+  renderEmailList('iList', 'info', null);
+  renderEmailList('sList', 'subs', null);
+  renderDeals();
+  renderEmailList('oList', 'other', null);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 10: ACTIONS
+   ═══════════════════════════════════════════════════════════════ */
+function resolveItem(id) {
+  state.resolved.add(id); persistResolved();
+  toast('Ticket resolved', 'fa-check-circle', 'var(--ok)');
+  showScreen('tickets'); renderAll();
+}
+function snoozeItem() { toast('Snoozed for 2 hours', 'fa-clock', 'var(--ac)'); showScreen('tickets'); }
+function archiveItem(id) {
+  state.resolved.add(id); persistResolved();
+  toast('Archived', 'fa-archive', 'var(--mt)');
+  showScreen('dashboard'); renderAll();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 11: SYNC (real email fetch)
+   ═══════════════════════════════════════════════════════════════ */
+async function syncEmails() {
+  if (state.provider === 'demo') {
+    state.emails = [...MOCK_EMAILS];
+    state.userName = state.userName || 'Demo User';
+    state.userEmail = state.userEmail || 'demo@mailtriage.app';
+    state.lastSync = Date.now();
+    runTriage();
+    renderAll();
+    hideLoading();
+    return;
+  }
+
+  showLoading(`Fetching emails from ${state.provider === 'gmail' ? 'Gmail' : 'Outlook'}...`);
+  try {
+    let raw = [];
+    if (state.provider === 'gmail') {
+      raw = await GmailClient.fetchEmails(20);
+    } else if (state.provider === 'outlook') {
+      raw = await OutlookClient.fetchEmails(20);
+    }
+    state.emails = raw;
+    state.lastSync = Date.now();
+    Store.set('emails', raw);
+    Store.set('lastSync', state.lastSync);
+    runTriage();
+    renderAll();
+    hideLoading();
+    const c = counts();
+    toast(`Synced — ${raw.length} emails, ${c.tickets} tickets, ${c.deals} deals`, 'fa-arrows-rotate', 'var(--ac)');
+  } catch (err) {
+    hideLoading();
+    if (err.message === 'TOKEN_EXPIRED') {
+      toast('Session expired — please reconnect', 'fa-exclamation-circle', 'var(--dn)');
+      setTimeout(() => { Store.clear(); showScreen('setup'); }, 1500);
+    } else {
+      toast(`Sync failed: ${err.message}`, 'fa-exclamation-circle', 'var(--dn)');
+      console.error('Sync error:', err);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 12: EVENT BINDINGS
+   ═══════════════════════════════════════════════════════════════ */
+
+// Splash → Setup
+setTimeout(() => { if (state.screen === 'splash') showScreen('setup'); }, 2500);
+
+// Demo button
+ $('#demoBtn').addEventListener('click', () => {
+  state.provider = 'demo';
+  showScreen('dashboard');
+  syncEmails();
+  setTimeout(() => toast('Running with demo data', 'fa-play', 'var(--ac)'), 500);
+});
+
+// Gmail button
+ $('#gmailBtn').addEventListener('click', async () => {
+  const cid = $('#clientIdInput').value.trim();
+  if (!cid) { toast('Paste your Google Client ID first', 'fa-exclamation-circle', 'var(--dn)'); return; }
+  showScreen('dashboard');
+  showLoading('Connecting to Gmail...');
+  try {
+    await GmailClient.init(cid);
+    state.provider = 'gmail';
+    // Get user profile
+    try {
+      const profile = await GmailClient.getProfile();
+      state.userName = profile.name || 'User';
+      state.userEmail = profile.email || '';
+    } catch { state.userName = 'User'; state.userEmail = ''; }
+    Store.set('provider', 'gmail');
+    Store.set('clientId', cid);
+    toast('Gmail connected', 'fa-check-circle', 'var(--ok)');
+    syncEmails();
+  } catch (err) {
+    hideLoading();
+    showScreen('setup');
+    toast(`Gmail auth failed: ${err.message}`, 'fa-exclamation-circle', 'var(--dn)');
+  }
+});
+
+// Outlook button
+ $('#outlookBtn').addEventListener('click', async () => {
+  const cid = $('#clientIdInput').value.trim();
+  if (!cid) { toast('Paste your Outlook Client ID first', 'fa-exclamation-circle', 'var(--dn)'); return; }
+  showScreen('dashboard');
+  showLoading('Connecting to Outlook...');
+  try {
+    await OutlookClient.init(cid);
+    state.provider = 'outlook';
+    try {
+      const profile = await OutlookClient.getProfile();
+      state.userName = profile.displayName || 'User';
+      state.userEmail = profile.mail || profile.userPrincipalName || '';
+    } catch { state.userName = 'User'; state.userEmail = ''; }
+    Store.set('provider', 'outlook');
+    Store.set('clientId', cid);
+    toast('Outlook connected', 'fa-check-circle', 'var(--ok)');
+    syncEmails();
+  } catch (err) {
+    hideLoading();
+    showScreen('setup');
+    toast(`Outlook auth failed: ${err.message}`, 'fa-exclamation-circle', 'var(--dn)');
+  }
+});
+
+// How-to link
+ $('#howToLink').addEventListener('click', (e) => { e.preventDefault(); showScreen('howTo'); });
+ $('#howToBack').addEventListener('click', () => showScreen('setup'));
+
+// Sync button
+ $('#syncBtn').addEventListener('click', () => {
+  $('#app').classList.add('syncing');
+  syncEmails().finally(() => $('#app').classList.remove('syncing'));
+});
+
+// Notif button
+ $('#notifBtn').addEventListener('click', () => {
+  const c = counts();
+  toast(`${c.tickets} tickets, ${c.deals} deals`, 'fa-bell', 'var(--ac)');
+});
+
+// Clear resolved
+ $('#clearBtn').addEventListener('click', () => {
+  if (!state.resolved.size) { toast('Nothing to clear', 'fa-info-circle', 'var(--mt)'); return; }
+  const n = state.resolved.size;
+  state.resolved.clear(); persistResolved();
+  toast(`Cleared ${n} item${n>1?'s':''}`, 'fa-check-double', 'var(--ok)');
+  renderAll();
+});
+
+// Detail back
+ $('#detBack').addEventListener('click', () => { showScreen(state.previousScreen); renderAll(); });
+
+// Track previous screen for detail back button
+const origShowScreen = showScreen;
+// We patch renderDetail to remember where we came from
+const _origRenderDetail = renderDetail;
+// Actually let's just track it on eitem click
+document.addEventListener('click', (e) => {
+  const item = e.target.closest('.eitem, .deal-card');
+  if (item && state.screen !== 'emailDetail') state.previousScreen = state.screen;
+});
+
+// Filters
+ $('#tFilters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.fchip'); if (!chip) return;
+  state.tFilter = chip.dataset.f;
+  $$('#tFilters .fchip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  renderEmailList('tList', 'tickets', state.tFilter);
+});
+ $('#dFilters').addEventListener('click', (e) => {
+  const chip = e.target.closest('.fchip'); if (!chip) return;
+  state.dFilter = chip.dataset.f;
+  $$('#dFilters .fchip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  renderDeals();
+});
+
+// Bottom nav (all instances)
+ $$('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const s = item.dataset.s; if (!s) return;
+    showScreen(s); renderList(s); if (s === 'dashboard') renderDashboard();
+  });
+});
+
+// Toggles
+ $$('.toggle').forEach(t => {
+  t.addEventListener('click', () => {
+    t.classList.toggle('on');
+    toast(t.classList.contains('on') ? 'Enabled' : 'Disabled', t.classList.contains('on') ? 'fa-toggle-on' : 'fa-toggle-off', t.classList.contains('on') ? 'var(--ok)' : 'var(--mt)');
+  });
+});
+
+// Disconnect
+ $('#discBtn').addEventListener('click', () => {
+  Store.clear();
+  state.provider = null; state.emails = []; state.categorized = [];
+  state.resolved.clear(); state.userEmail = ''; state.userName = '';
+  $('#clientIdInput').value = '';
+  showScreen('setup');
+  toast('Disconnected', 'fa-right-from-bracket', 'var(--dn)');
+});
+
+// Prevent pull-to-refresh
+document.body.addEventListener('touchmove', (e) => {
+  if (e.target.closest('.content')) return;
+  e.preventDefault();
+}, { passive: false });
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 13: INIT — check for existing session
+   ═══════════════════════════════════════════════════════════════ */
+(function init() {
+  const savedProvider = Store.get('provider');
+  const savedEmails = Store.get('emails');
+  const savedClientId = Store.get('clientId');
+
+  if (savedProvider && savedEmails && savedEmails.length) {
+    // Restore session from cache
+    state.provider = savedProvider;
+    state.emails = savedEmails;
+    state.lastSync = Store.get('lastSync');
+    state.userName = Store.get('userName', 'User');
+    state.userEmail = Store.get('userEmail', '');
+    if (savedClientId) $('#clientIdInput').value = savedClientId;
+    runTriage();
+    showScreen('dashboard');
+    renderAll();
+    toast(`Restored ${savedEmails.length} cached emails`, 'fa-database', 'var(--inf)');
+  }
+  // Otherwise stay on setup screen (after splash)
+})();
+</script>
+</body>
+</html>
